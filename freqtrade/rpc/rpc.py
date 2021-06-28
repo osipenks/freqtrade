@@ -24,6 +24,7 @@ from freqtrade.persistence.models import PairLock
 from freqtrade.plugins.pairlist.pairlist_helpers import expand_pairlist
 from freqtrade.rpc.fiat_convert import CryptoToFiatConverter
 from freqtrade.strategy.interface import SellCheckTuple
+from freqtrade.strategy.strategy_wrapper import strategy_safe_wrapper
 
 
 logger = logging.getLogger(__name__)
@@ -596,10 +597,12 @@ class RPC:
             raise RPCException(f'position for {pair} already open - id: {trade.id}')
 
         # gen stake amount
-        stakeamount = self._freqtrade.wallets.get_trade_stake_amount(pair)
+        proposed_stake_amount = self._freqtrade.wallets.get_trade_stake_amount(pair)
+        stake_amount = strategy_safe_wrapper(self._freqtrade.strategy.custom_stake_amount,
+                                             default_retval=proposed_stake_amount)(pair, proposed_stake_amount)
 
         # execute buy
-        if self._freqtrade.execute_buy(pair, stakeamount, price, forcebuy=True):
+        if self._freqtrade.execute_buy(pair, stake_amount, price, forcebuy=True):
             Trade.commit()
             trade = Trade.get_trades([Trade.is_open.is_(True), Trade.pair == pair]).first()
             return trade

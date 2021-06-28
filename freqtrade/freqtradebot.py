@@ -423,7 +423,9 @@ class FreqtradeBot(LoggingMixin):
         (buy, sell) = self.strategy.get_signal(pair, self.strategy.timeframe, analyzed_df)
 
         if buy and not sell:
-            stake_amount = self.wallets.get_trade_stake_amount(pair, self.edge)
+            proposed_stake_amount = self.wallets.get_trade_stake_amount(pair, self.edge)
+            stake_amount = strategy_safe_wrapper(self.strategy.custom_stake_amount,
+                                                 default_retval=proposed_stake_amount)(pair, proposed_stake_amount)
             if not stake_amount:
                 logger.debug(f"Stake amount is 0, ignoring possible trade for {pair}.")
                 return False

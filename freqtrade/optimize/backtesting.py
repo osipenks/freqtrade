@@ -304,9 +304,12 @@ class Backtesting:
 
     def _enter_trade(self, pair: str, row: List) -> Optional[LocalTrade]:
         try:
-            stake_amount = self.wallets.get_trade_stake_amount(pair, None)
+            proposed_stake_amount = self.wallets.get_trade_stake_amount(pair, None)
         except DependencyException:
             return None
+        stake_amount = strategy_safe_wrapper(self.strategy.custom_stake_amount,
+                                             default_retval=proposed_stake_amount)(pair, proposed_stake_amount)
+
         min_stake_amount = self.exchange.get_min_pair_stake_amount(pair, row[OPEN_IDX], -0.05)
 
         order_type = self.strategy.order_types['buy']
