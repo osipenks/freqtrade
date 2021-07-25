@@ -22,7 +22,9 @@ logger = logging.getLogger(__name__)
 
 
 try:
-    import plotly.graph_objects as go
+    from _plotly_future_ import v4_subplots
+    from plotly import graph_objs as go
+    # import plotly.graph_objects as go
     from plotly.offline import plot
     from plotly.subplots import make_subplots
 except ImportError:
