@@ -74,16 +74,16 @@ class HyperOptAuto(IHyperOpt):
         return self._get_indicator_space('sell', 'sell_indicator_space')
 
     def generate_roi_table(self, params: Dict) -> Dict[int, float]:
-        return self._get_func('generate_roi_table')(params)
+        return self._get_func('generate_roi_table')(self, params)
 
     def roi_space(self) -> List['Dimension']:
-        return self._get_func('roi_space')()
+        return self._get_func('roi_space')(self)
 
     def stoploss_space(self) -> List['Dimension']:
-        return self._get_func('stoploss_space')()
+        return self._get_func('stoploss_space')(self)
 
     def generate_trailing_params(self, params: Dict) -> Dict:
-        return self._get_func('generate_trailing_params')(params)
+        return self._get_func('generate_trailing_params')(self, params)
 
     def trailing_space(self) -> List['Dimension']:
-        return self._get_func('trailing_space')()
+        return self._get_func('trailing_space')(self)
