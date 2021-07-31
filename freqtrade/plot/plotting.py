@@ -375,6 +375,7 @@ def generate_candlestick_graph(pair: str, data: pd.DataFrame, trades: pd.DataFra
     for i, name in enumerate(plot_config['subplots']):
         fig['layout'][f'yaxis{3 + i}'].update(title=name)
     fig['layout']['xaxis']['rangeslider'].update(visible=False)
+    fig.update_layout(modebar_add=["v1hovermode", "toggleSpikeLines"])
 
     # Common information
     candles = go.Candlestick(
@@ -454,6 +455,7 @@ def generate_candlestick_graph(pair: str, data: pd.DataFrame, trades: pd.DataFra
                              data=data)
         # fill area between indicators ( 'fill_to': 'other_indicator')
         fig = add_areas(fig, row, data, sub_config)
+
     return fig
 
 
@@ -486,6 +488,7 @@ def generate_profit_graph(pairs: str, data: Dict[str, pd.DataFrame],
     fig['layout']['yaxis2'].update(title=f'Profit {stake_currency}')
     fig['layout']['yaxis3'].update(title=f'Profit {stake_currency}')
     fig['layout']['xaxis']['rangeslider'].update(visible=False)
+    fig.update_layout(modebar_add=["v1hovermode", "toggleSpikeLines"])
 
     fig.add_trace(avgclose, 1, 1)
     fig = add_profit(fig, 2, df_comb, 'cum_profit', 'Profit')
@@ -499,7 +502,6 @@ def generate_profit_graph(pairs: str, data: Dict[str, pd.DataFrame],
             fig = add_profit(fig, 3, df_comb, profit_col, f"Profit {pair}")
         except ValueError:
             pass
-
     return fig
 
 

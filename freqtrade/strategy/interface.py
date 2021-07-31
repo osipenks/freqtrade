@@ -13,7 +13,7 @@ from pandas import DataFrame
 
 from freqtrade.constants import ListPairsWithTimeframes
 from freqtrade.data.dataprovider import DataProvider
-from freqtrade.enums import SellType, SignalType
+from freqtrade.enums import SellType, SignalTagType, SignalType
 from freqtrade.exceptions import OperationalException, StrategyError
 from freqtrade.exchange import timeframe_to_minutes, timeframe_to_seconds
 from freqtrade.exchange.exchange import timeframe_to_next_date
@@ -62,6 +62,7 @@ class IStrategy(ABC, HyperStrategyMixin):
     _populate_fun_len: int = 0
     _buy_fun_len: int = 0
     _sell_fun_len: int = 0
+    _ft_params_from_file: Dict = {}
     # associated minimal roi
     minimal_roi: Dict
 
@@ -303,6 +304,23 @@ class IStrategy(ABC, HyperStrategyMixin):
         """
         return None
 
+    def custom_stake_amount(self, pair: str, current_time: datetime, current_rate: float,
+                            proposed_stake: float, min_stake: float, max_stake: float,
+                            **kwargs) -> float:
+        """
+        Customize stake size for each new trade. This method is not called when edge module is
+        enabled.
+
+        :param pair: Pair that's currently analyzed
+        :param current_time: datetime object, containing the current datetime
+        :param current_rate: Rate, calculated based on pricing settings in ask_strategy.
+        :param proposed_stake: A stake amount proposed by the bot.
+        :param min_stake: Minimal stake size allowed by exchange.
+        :param max_stake: Balance available for trading.
+        :return: A stake size, which is between min_stake and max_stake.
+        """
+        return proposed_stake
+
     def informative_pairs(self) -> ListPairsWithTimeframes:
         """
         Define additional, informative pair/interval combinations to be cached from the exchange.
@@ -412,6 +430,7 @@ class IStrategy(ABC, HyperStrategyMixin):
             logger.debug("Skipping TA Analysis for already analyzed candle")
             dataframe['buy'] = 0
             dataframe['sell'] = 0
+            dataframe['buy_tag'] = None
 
         # Other Defs in strategy that want to be called every loop here
         # twitter_sell = self.watch_twitter_feed(dataframe, metadata)
@@ -486,7 +505,12 @@ class IStrategy(ABC, HyperStrategyMixin):
             else:
                 raise StrategyError(message)
 
-    def get_signal(self, pair: str, timeframe: str, dataframe: DataFrame) -> Tuple[bool, bool]:
+    def get_signal(
+        self,
+        pair: str,
+        timeframe: str,
+        dataframe: DataFrame
+    ) -> Tuple[bool, bool, Optional[str]]:
         """
         Calculates current signal based based on the buy / sell columns of the dataframe.
         Used by Bot to get the signal to buy or sell
@@ -497,7 +521,7 @@ class IStrategy(ABC, HyperStrategyMixin):
         """
         if not isinstance(dataframe, DataFrame) or dataframe.empty:
             logger.warning(f'Empty candle (OHLCV) data for pair {pair}')
-            return False, False
+            return False, False, None
 
         latest_date = dataframe['date'].max()
         latest = dataframe.loc[dataframe['date'] == latest_date].iloc[-1]
@@ -512,9 +536,12 @@ class IStrategy(ABC, HyperStrategyMixin):
                 'Outdated history for pair %s. Last tick is %s minutes old',
                 pair, int((arrow.utcnow() - latest_date).total_seconds() // 60)
             )
-            return False, False
+            return False, False, None
 
-        (buy, sell) = latest[SignalType.BUY.value] == 1, latest[SignalType.SELL.value] == 1
+        buy = latest[SignalType.BUY.value] == 1
+        sell = latest[SignalType.SELL.value] == 1
+        buy_tag = latest.get(SignalTagType.BUY_TAG.value, None)
+
         logger.debug('trigger: %s (pair=%s) buy=%s sell=%s',
                      latest['date'], pair, str(buy), str(sell))
         timeframe_seconds = timeframe_to_seconds(timeframe)
@@ -522,8 +549,8 @@ class IStrategy(ABC, HyperStrategyMixin):
                                       current_time=datetime.now(timezone.utc),
                                       timeframe_seconds=timeframe_seconds,
                                       buy=buy):
-            return False, sell
-        return buy, sell
+            return False, sell, buy_tag
+        return buy, sell, buy_tag
 
     def ignore_expired_candle(self, latest_date: datetime, current_time: datetime,
                               timeframe_seconds: int, buy: bool):

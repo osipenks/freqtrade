@@ -257,6 +257,7 @@ class LocalTrade():
     sell_reason: str = ''
     sell_order_status: str = ''
     strategy: str = ''
+    buy_tag: Optional[str] = None
     timeframe: Optional[int] = None
 
     def __init__(self, **kwargs):
@@ -288,6 +289,7 @@ class LocalTrade():
             'amount_requested': round(self.amount_requested, 8) if self.amount_requested else None,
             'stake_amount': round(self.stake_amount, 8),
             'strategy': self.strategy,
+            'buy_tag': self.buy_tag,
             'timeframe': self.timeframe,
 
             'fee_open': self.fee_open,
@@ -636,7 +638,7 @@ class LocalTrade():
 
             # skip case if trailing-stop changed the stoploss already.
             if (trade.stop_loss == trade.initial_stop_loss
-               and trade.initial_stop_loss_pct != desired_stoploss):
+                    and trade.initial_stop_loss_pct != desired_stoploss):
                 # Stoploss value got changed
 
                 logger.info(f"Stoploss for {trade} needs adjustment...")
@@ -703,6 +705,7 @@ class Trade(_DECL_BASE, LocalTrade):
     sell_reason = Column(String(100), nullable=True)
     sell_order_status = Column(String(100), nullable=True)
     strategy = Column(String(100), nullable=True)
+    buy_tag = Column(String(100), nullable=True)
     timeframe = Column(Integer, nullable=True)
 
     def __init__(self, **kwargs):
@@ -800,6 +803,19 @@ class Trade(_DECL_BASE, LocalTrade):
                                  Trade.orders.any(),
                                  Trade.is_open.is_(False),
                                  ]).all()
+
+    @staticmethod
+    def get_total_closed_profit() -> float:
+        """
+        Retrieves total realized profit
+        """
+        if Trade.use_db:
+            total_profit = Trade.query.with_entities(
+                func.sum(Trade.close_profit_abs)).filter(Trade.is_open.is_(False)).scalar()
+        else:
+            total_profit = sum(
+                t.close_profit_abs for t in LocalTrade.get_trades_proxy(is_open=False))
+        return total_profit or 0
 
     @staticmethod
     def total_open_trades_stakes() -> float:
