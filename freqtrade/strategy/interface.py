@@ -334,14 +334,6 @@ class IStrategy(ABC, HyperStrategyMixin):
         """
         return []
 
-    def custom_stake_amount(self, pair: str, default_stake_amount: float, date: Optional[datetime] = None) -> float:
-        """ Called when placing a buy order
-        :param default_stake_amount:
-        :param pair: Pair that's about to be bought.
-        :param date: date of the trade (should be the latest candle for live run mode).
-        """
-        return default_stake_amount
-
 ###
 # END - Intended to be overridden by strategy
 ###

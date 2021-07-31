@@ -588,9 +588,9 @@ class RPC:
 
     def _rpc_forcebuy(self, pair: str, price: Optional[float]) -> Optional[Trade]:
         """
-        Handler for forcebuy <asset> <price>
-        Buys a pair trade at the given or current price
-        """
+             Handler for forcebuy <asset> <price>
+             Buys a pair trade at the given or current price
+             """
 
         if not self._freqtrade.config.get('forcebuy_enable', False):
             raise RPCException('Forcebuy not enabled.')
@@ -611,12 +611,10 @@ class RPC:
             raise RPCException(f'position for {pair} already open - id: {trade.id}')
 
         # gen stake amount
-        proposed_stake_amount = self._freqtrade.wallets.get_trade_stake_amount(pair)
-        stake_amount = strategy_safe_wrapper(self._freqtrade.strategy.custom_stake_amount,
-                                             default_retval=proposed_stake_amount)(pair, proposed_stake_amount)
+        stakeamount = self._freqtrade.wallets.get_trade_stake_amount(pair)
 
         # execute buy
-        if self._freqtrade.execute_buy(pair, stake_amount, price, forcebuy=True):
+        if self._freqtrade.execute_buy(pair, stakeamount, price, forcebuy=True):
             Trade.commit()
             trade = Trade.get_trades([Trade.is_open.is_(True), Trade.pair == pair]).first()
             return trade
