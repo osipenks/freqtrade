@@ -372,7 +372,8 @@ class FreqtradeBot(LoggingMixin):
             lock = PairLocks.get_pair_longest_lock('*')
             if lock:
                 self.log_once(f"Global pairlock active until "
-                              f"{lock.lock_end_time.strftime(constants.DATETIME_PRINT_FORMAT)}. "
+                              # f"{lock.lock_end_time.strftime(constants.DATETIME_PRINT_FORMAT)}. "
+                              f"{lock.lock_end_time.astimezone().strftime(constants.DATETIME_PRINT_FORMAT)}. "
                               f"Not creating new trades, reason: {lock.reason}.", logger.info)
             else:
                 self.log_once("Global pairlock active. Not creating new trades.", logger.info)
